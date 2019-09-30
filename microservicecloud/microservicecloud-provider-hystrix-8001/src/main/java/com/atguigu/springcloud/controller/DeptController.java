@@ -1,0 +1,63 @@
+package com.atguigu.springcloud.controller;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.atguigu.springcloud.enties.Dept;
+import com.atguigu.springcloud.service.DeptService;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+
+@RestController
+public class DeptController {
+
+	@Autowired
+	private DeptService service;
+
+	@RequestMapping(value="/dept/add",method=RequestMethod.POST)
+	public boolean add(@RequestBody Dept dept)
+	{
+		return service.add(dept);
+	}
+
+	@RequestMapping(value="/dept/get/{id}",method=RequestMethod.GET)
+	public Dept get(@PathVariable("id") Long id)
+	{
+		return service.get(id);
+	}
+
+	@RequestMapping(value="/dept/list",method=RequestMethod.GET)
+	@HystrixCommand(fallbackMethod = "processHystrix_Get")
+	public List<Dept> list()
+	{
+		List<Dept> list = new ArrayList<Dept>();
+		Dept dept = new Dept();
+		dept.setDeptno(1L).setDname("部门1").setDb_source("8001库");
+		list.add(dept);
+		Dept dept1= new Dept();
+		dept1.setDeptno(2L).setDname("部门2").setDb_source("8001库");
+		list.add(dept1);
+		Random random = new Random();
+		if(random.nextBoolean()) {
+			throw new RuntimeException("该ID：没有没有对应的信息");
+		}
+		return list;
+	}
+
+	public List<Dept> processHystrix_Get()
+	{
+		List<Dept> list = new ArrayList<>();
+		list.add(new Dept().setDeptno(10L)
+				.setDname("该ID没有没有对应的信息,null--@HystrixCommand")
+				.setDb_source("no this database in MySQL"));
+		return list;
+	}
+
+}
